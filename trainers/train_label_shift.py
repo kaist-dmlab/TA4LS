@@ -25,9 +25,6 @@ import copy
 
 
 class Trainer_LS(AbstractTrainer):
-    """
-   This class contain the main training functions for our AdAtime
-    """
 
     def __init__(self, args):
         super().__init__(args)
