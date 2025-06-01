@@ -12,7 +12,7 @@ import sklearn.exceptions
 import collections
 
 from torchmetrics import Accuracy, AUROC, F1Score
-from dataloader.dataloader import data_generator, few_shot_data_generator, data_generator_balanced, data_generator_original
+from dataloader.dataloader import data_generator, few_shot_data_generator, data_generator_balanced
 from configs.data_model_configs import get_dataset_class
 from configs.hparams import get_hparams_class
 from configs.sweep_params import sweep_alg_hparams
@@ -23,11 +23,11 @@ from models.models import get_backbone_class
 warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWarning)
 
 # additional 
+from sklearn.cluster import AgglomerativeClustering
 from dataloader.dataloader import data_generator_balanced
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 import math
-
 
 # Updated decomposed_features function
 from scipy.signal import cwt, ricker
@@ -164,17 +164,16 @@ class AbstractTrainer(object):
                     trg_feat_trend.append(trend_array)
                     trg_feat_detrend.append(detrend_array)
                     trg_feat_frequency.append(frequency_array)
-                selected_feature = args.selected_feature if hasattr(args, 'selected_feature') else 'all'
                 clustering_method = args.clustering_method if hasattr(args, 'clustering_method') else 'gmm'
                 feature_sets = []
-                feature_sets = [('trend', trg_feat_trend,src_feat_trend),('detrend', trg_feat_detrend,src_feat_detrend),('frequency', trg_feat_frequency,src_feat_frequency)]
+                feature_sets = [('trend', trg_feat_trend),('detrend', trg_feat_detrend),('frequency', trg_feat_frequency)]
                 num_samples = len(trg_feat_frequency)
                 cluster_labels_list = []
                 cluster_probabilities_list = []
 
                 clustering_list, agg_clustering = cluster_algorithm
                 n_components = self.num_classes
-                for cluster_name,(feature_name, trg_feat_list,src_feat_list) in zip(clustering_list, feature_sets):
+                for cluster_name,(feature_name, trg_feat_list) in zip(clustering_list, feature_sets):
                     trg_X = np.array(trg_feat_list).reshape(len(trg_feat_list), -1)
                     cluster_labels = cluster_name.predict(trg_X)
                     cluster_labels_list.append(cluster_labels)
@@ -192,9 +191,8 @@ class AbstractTrainer(object):
                     np.fill_diagonal(co_association_matrix, 0)
                     
                     # Apply Agglomerative Clustering on co-association matrix
-                    agg_clustering = AgglomerativeClustering(n_clusters=n_components, linkage='average', metric=args.metric)
+                    agg_clustering = AgglomerativeClustering(n_clusters=n_components, linkage='average')
                     final_cluster_labels = agg_clustering.fit_predict(1 - co_association_matrix)
-                    #final_cluster_labels = agg_clustering.predict(1 - co_association_matrix)
                     
                     final_cluster_probabilities = np.zeros((num_samples, n_components))
                     for i in range(num_samples):
@@ -360,16 +358,17 @@ class AbstractTrainer(object):
         self.hparams["batch_size"] = 1 # 
         self.trg_train_b1_dl = data_generator(self.data_path, trg_id, self.dataset_configs, self.hparams, "train")
         self.trg_test_b1_dl = data_generator(self.data_path, trg_id, self.dataset_configs, self.hparams, "test")
+        self.src_train_b1_dl = data_generator(self.data_path, src_id, self.dataset_configs, self.hparams, "train")
 
         self.dataset_configs.drop_last = drop_last
         self.dataset_configs.shuffle = shuffle
-        self.hparams["batch_size"] = batch_size # 
+        self.hparams["batch_size"] = batch_size 
         
         ## Balanced Label Distribution
         # source is okay
         self.src_balanced_train_dl = data_generator_balanced(self.data_path, src_id, self.dataset_configs, self.hparams, "train","same")
         self.src_balanced_test_dl = data_generator_balanced(self.data_path, src_id, self.dataset_configs, self.hparams, "test","same")
-
+        
 
         ## Up-sampled balanced label distiribution
         # source is okay
@@ -467,9 +466,9 @@ class AbstractTrainer(object):
         wandb.log(summary_metrics)
         wandb.log(summary_risks)
 
-    def calculate_metrics(self, label_weight=None, cluster_algorithm=None):
+    def calculate_metrics(self, label_weight=None, cluster_algorithm=None,trg_test_b1_dl =None,logger=None):
        
-        self.evaluate('trg',self.trg_test_dl,label_weight, cluster_algorithm)
+        self.evaluate('trg',self.trg_test_dl, label_weight, cluster_algorithm,trg_test_b1_dl,logger)
         # accuracy  
         acc = self.ACC(self.full_preds.argmax(dim=1).cpu(), self.full_labels.cpu()).item()
         # f1
@@ -479,15 +478,15 @@ class AbstractTrainer(object):
 
         return acc, f1, auroc
 
-    def calculate_risks(self, label_weight=None, cluster_algorithm=None):
+    def calculate_risks(self, label_weight=None, cluster_algorithm=None, trg_test_b1_dl=None,logger=None):
          # calculation based source test data
-        self.evaluate('src',self.src_test_dl)
+        self.evaluate('src',self.src_test_dl, label_weight, cluster_algorithm, trg_test_b1_dl,logger)
         src_risk = self.loss.item()
         # calculation based few_shot test data
-        self.evaluate('few',self.few_shot_dl_5)
+        self.evaluate('few',self.few_shot_dl_5, label_weight, cluster_algorithm, trg_test_b1_dl,logger)
         fst_risk = self.loss.item()
         # calculation based target test data
-        self.evaluate('trg',self.trg_test_dl, label_weight, cluster_algorithm)
+        self.evaluate('trg',self.trg_test_dl, label_weight, cluster_algorithm, trg_test_b1_dl,logger)
         trg_risk = self.loss.item()
 
         return src_risk, fst_risk, trg_risk
