@@ -21,6 +21,7 @@ from trainers.abstract_trainer import AbstractTrainer
 parser = argparse.ArgumentParser()
 
 import pickle
+import copy
 
 
 class Trainer_LS(AbstractTrainer):
@@ -66,17 +67,20 @@ class Trainer_LS(AbstractTrainer):
                 self.last_model, self.best_model, self.label_weight, self.cluster_algorithm = self.algorithm.update_label_shift(self.args, self.src_train_dl, self.trg_train_dl, 
                                                                                      self.src_balanced_train_dl, self.trg_train_b1_dl, 
                                                                                      self.loss_avg_meters, self.logger,self.hparams, 
-                                                                                     self.device, self.dataset_configs,warm_up_align=False,FE_balanced=False,src_train_b1_dl=self.src_train_b1_dl,trg_test_b1_dl = self.trg_test_b1_dl) 
+                                                                                     self.device, self.dataset_configs,warm_up_align=False,FE_balanced=False,
+                                                                                     src_train_b1_dl=self.src_train_b1_dl,trg_test_b1_dl = self.trg_test_b1_dl) 
 
                 # Save checkpoint ##########################################################################
-                self.save_checkpoint(self.home_path, self.scenario_log_dir, self.last_model, self.best_model)
-                with open(os.path.join(self.scenario_log_dir,"label_weight.pkl"), "wb") as file:
-                    pickle.dump(self.label_weight, file)
+                #self.save_checkpoint(self.home_path, self.scenario_log_dir, self.last_model, self.best_model)
+                #with open(os.path.join(self.scenario_log_dir,"label_weight.pkl"), "wb") as file:
+                #    pickle.dump(self.label_weight, file)
                 ############################################################################################
 
                 # Calculate risks and metrics
-                metrics = self.calculate_metrics(self.label_weight,self.cluster_algorithm)
-                risks = self.calculate_risks(self.label_weight,self.cluster_algorithm)
+                trg_test_b1_dl = copy.deepcopy(self.trg_test_b1_dl)
+                logger = copy.deepcopy(self.logger)
+                metrics = self.calculate_metrics(self.label_weight,self.cluster_algorithm, trg_test_b1_dl = trg_test_b1_dl, logger= logger)
+                risks = self.calculate_risks(self.label_weight,self.cluster_algorithm, trg_test_b1_dl = trg_test_b1_dl, logger= logger)
 
                 self.logger.debug(f'calculate metrics: \n {metrics}')
                 self.logger.debug(f'calculate risks: \n {risks}')
