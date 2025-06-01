@@ -27,6 +27,7 @@ Time-series unsupervised domain adaptation (TS-UDA) is essential in fields such 
 
 * Parameter options
 ```
+--data_path: set the path of the datasets
 --dataset : dataset name (e.g., HAR, HHAR_SA, WISDM, and EEG)
 --device : GPU device
 --label_shift : True (TA4LS), False (Original UDA)
