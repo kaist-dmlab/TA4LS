@@ -144,17 +144,14 @@ class Algorithm(torch.nn.Module):
             for trg_x, _ in trg_train_b1_dl:
                 trg_x = trg_x.to(device)
                 # Extract trend, detrend, frequency, and wavelet features for co-training clustering
-                trend_array, detrend_array, frequency_array, wavelet_array = decomposed_features(trg_x.cpu(), window_size=5, wavelet_width=5, frac=float(args.frac))
+                trend_array, detrend_array, frequency_array = decomposed_features(trg_x.cpu(), window_size=5, wavelet_width=5, frac=float(args.frac))
                 trg_feat_trend.append(trend_array)
                 trg_feat_detrend.append(detrend_array)
                 trg_feat_frequency.append(frequency_array)
-                trg_feat_wavelet.append(wavelet_array)
             
             # Feature sets for experiments: Select which feature to use
-            selected_feature = args.selected_feature if hasattr(args, 'selected_feature') else 'all'
-            logger.debug(f'selected_feature: {selected_feature}')
             feature_sets = []
-            feature_sets = [('trend', trg_feat_trend,src_feat_trend),('detrend', trg_feat_detrend,src_feat_detrend),('frequency', trg_feat_frequency,src_feat_frequency)]
+            feature_sets = [('trend', trg_feat_trend),('detrend', trg_feat_detrend),('frequency', trg_feat_frequency)]
 
             # Clustering using different feature sets
             clustering_method = args.clustering_method if hasattr(args, 'clustering_method') else 'gmm'
@@ -165,7 +162,7 @@ class Algorithm(torch.nn.Module):
             cluster_probabilities_list = []
             cluster_algorithm = []
     
-            for feature_name, trg_feat_list,src_feat_list in feature_sets:
+            for feature_name, trg_feat_list in feature_sets:
                 if len(trg_feat_list) == 0:
                     logger.warning(f"Feature list {feature_name} is empty. Skipping clustering for this feature.")
                     continue
@@ -195,7 +192,7 @@ class Algorithm(torch.nn.Module):
                 # Set diagonal elements to zero
                 np.fill_diagonal(co_association_matrix, 0)
                 
-                agg_clustering = AgglomerativeClustering(n_clusters=n_components, linkage='average', metric=args.metric)
+                agg_clustering = AgglomerativeClustering(n_clusters=n_components, linkage='average')
                 final_cluster_labels = agg_clustering.fit_predict(1 - co_association_matrix)                
                 final_cluster_probabilities = np.zeros((num_samples, n_components))
                 for i in range(num_samples):
@@ -212,7 +209,7 @@ class Algorithm(torch.nn.Module):
         for epoch in range(1, self.hparams["num_epochs"] + 1):
             self.feature_extractor.train()
             self.classifier.train()
-            self.training_epoch(src_balanced_loader, trg_ebalanced_loader, avg_meter, epoch)
+            self.training_epoch(src_balanced_loader, trg_loader, avg_meter, epoch)
 
             # saving the best model based on src risk
             if (epoch + 1) % 10 == 0 and avg_meter['Src_cls_loss'].avg < best_src_risk:
