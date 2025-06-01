@@ -17,8 +17,11 @@ if __name__ == "__main__":
     # ========= Select the DA methods ============
     parser.add_argument('--da_method',              default='DANN',               type=str, help='DANN, DIRT, DSAN, HoMM, CoDATS, SASA')
 
+    # ========= Select the label_shift methods ============
+    parser.add_argument('--frac',              default='0.1',               type=str,  help='0~1')
+
     # ========= Select the DATASET ==============
-    parser.add_argument('--data_path',              default=r'./data',                  type=str, help='Path containing datase2t')
+    parser.add_argument('--data_path',              default=r'./data',                  type=str, help='Path containing dataset')
     parser.add_argument('--dataset',                default='HAR',                      type=str, help='Dataset of choice: (WISDM - EEG - HAR - HHAR_SA)')
 
     # ========= Select the BACKBONE ==============
