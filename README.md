@@ -2,7 +2,7 @@
 
 [KDD2025] Mitigating Source Label Dependency in Time-Series Domain Adaptation under Label Shifts
 
-This is the implementation of TA4LS published in KDD 2025 [paper]()
+This is the implementation of TA4LS published in KDD 2025 [paper](https://dl.acm.org/doi/10.1145/3711896.3737050)
 
 ## Overview 
 Time-series unsupervised domain adaptation (TS-UDA) is essential in fields such as healthcare and manufacturing, where data often consists of distinct entities, such as individual patients or machinery. This heterogeneity leads to discrepancies not only in feature distributions but also in label distributions, posing a significant challenge for domain adaptation. However, prior studies have mostly focused on alleviating covariate shifts, resulting in predicted target labels that are often biased toward the source domain's label distribution. To address this issue, we propose **T**ime-series domain **A**daptation **for** mitigating **L**abel **S**hifts (**TA4LS**), a novel label refinement approach. TA4LS leverages the consistency between predicted labels and clustering information obtained from the unique characteristics that differentiate each label in the target domain. Furthermore, our approach as a plug-in module achieves performance improvements across diverse existing unsupervised domain adaptation methods, particularly in scenarios with significant discrepancies between source and target label distributions. In experiments on four benchmark datasets with label shifts, TA4LS demonstrates superior performance across six unsupervised domain adaptation methods and six label shift handling modules.
