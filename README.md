@@ -43,7 +43,7 @@ Time-series unsupervised domain adaptation (TS-UDA) is essential in fields such 
 python main.py --dataset WISDM --device cuda:0 --label_shift True --exp_name YOUR_EXP_NAME  --da_method DSAN --num_runs 3
 ```
  
-    
+     
 ---
 
 ### Code Reference
